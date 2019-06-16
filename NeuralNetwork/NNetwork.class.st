@@ -111,6 +111,15 @@ NNetwork >> outputLayer [
 ]
 
 { #category : #initialization }
+NNetwork >> predict: inputs [
+	"To make a prediction. This method assumes that the number of outputs is the same than the number of different values the network can output."
+
+	| outputs |
+	outputs := self feed: inputs.
+	^ (outputs indexOf: (outputs max)) - 1
+]
+
+{ #category : #initialization }
 NNetwork >> train: someInputs desiredOutputs: desiredOutputs [
 	"To train the whole neural network with a set of inputs and some expected output."
 
@@ -121,6 +130,31 @@ NNetwork >> train: someInputs desiredOutputs: desiredOutputs [
 	
 	self backwardPropagateError: desiredOutputs.
 	self updateWeights: someInputs.
+]
+
+{ #category : #initialization }
+NNetwork >> train: trainingSet nbEpoch: nbOfEpoch [
+	"To train the network using the training data set."
+
+	| sumError outputs expectedOutputs epochPrecision t |
+	1 to: nbOfEpoch do: [ :epoch |
+		sumError := 0.
+		epochPrecision := 0.
+		trainingSet do: [ :row |
+			outputs := self feed: row allButLast.
+			expectedOutputs := (1 to: self numberOfOutputs) collect: [ 0 ].
+			expectedOutputs at: (row last) +1 put: 1.
+			(row last = (self predict: row allButLast)) ifTrue: [ epochPrecision := epochPrecision + 1 ].
+			t := (1 to: expectedOutputs size)
+						collect: [ :i | ((expectedOutputs at: i) - (outputs at: i)) raisedTo: 2 ].
+			sumError := sumError + t sum.
+			
+			self backwardPropagateError: expectedOutputs.
+			self updateWeights: row allButLast.
+		].
+		errors add: sumError.
+		precisions add: (epochPrecision / trainingSet size) asFloat.
+	]
 ]
 
 { #category : #initialization }
