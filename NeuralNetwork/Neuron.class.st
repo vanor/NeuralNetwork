@@ -3,7 +3,7 @@ This class represent an artificial neuron for machine learning neural architectu
 
 I implement this class in the context of Agile Artificial Intelligence book.
 
-In regard of the authors of agileArtificialIntelligence book.
+In regard of the authors of agileArtificialIntelligence book. But we have added a condition to check if the input is a volume for a convolutional purpose.
 
 Public API and Key Messages
 
@@ -131,6 +131,13 @@ Neuron >> step [
 	"To specify that the activation function is the step function"
 
 	activationFunction := StepAF new
+]
+
+{ #category : #accessing }
+Neuron >> tanh [
+	"To specify that the activation function is the hyperbolic tangent function"
+
+	activationFunction := HyperbolicTangentAF new
 ]
 
 { #category : #accessing }

@@ -97,6 +97,20 @@ NNetwork >> learningRate: aLearningRate [
 ]
 
 { #category : #initialization }
+NNetwork >> numberOfInputs [
+	"To get the number of input of the network."
+
+	^ layers first neurons anyOne weights size.
+]
+
+{ #category : #initialization }
+NNetwork >> numberOfNeurons [
+	"To get the total number of neurons into the network."
+
+	^ (layers collect: #numberOfNeurons) sum
+]
+
+{ #category : #initialization }
 NNetwork >> numberOfOutputs [
 	"To get the number of output of the network."
 
@@ -108,6 +122,15 @@ NNetwork >> outputLayer [
 	"To return the output layer, which is also the last layer."
 
 	^ layers last
+]
+
+{ #category : #initialization }
+NNetwork >> predict: inputs [
+	"To make a prediction. This method assumes that the number of outputs is the same than the number of different values the network can output."
+
+	| outputs |
+	outputs := self feed: inputs.
+	^ (outputs indexOf: (outputs max)) - 1
 ]
 
 { #category : #initialization }
@@ -124,8 +147,111 @@ NNetwork >> train: someInputs desiredOutputs: desiredOutputs [
 ]
 
 { #category : #initialization }
+NNetwork >> train: trainingSet nbEpoch: nbOfEpoch [
+	"To train the network using the training data set."
+
+	| sumError outputs expectedOutputs epochPrecision t |
+	1 to: nbOfEpoch do: [ :epoch |
+		sumError := 0.
+		epochPrecision := 0.
+		trainingSet do: [ :row |
+			outputs := self feed: row allButLast.
+			expectedOutputs := (1 to: self numberOfOutputs) collect: [ :notUsed | 0 ].
+			expectedOutputs at: (row last) +1 put: 1.
+			(row last = (self predict: row allButLast)) ifTrue: [ epochPrecision := epochPrecision + 1 ].
+			t := (1 to: expectedOutputs size)
+						collect: [ :i | ((expectedOutputs at: i) - (outputs at: i)) raisedTo: 2 ].
+			sumError := sumError + t sum.
+			
+			self backwardPropagateError: expectedOutputs.
+			self updateWeights: row allButLast.
+		].
+		errors add: sumError.
+		precisions add: (epochPrecision / trainingSet size) asFloat.
+	]
+]
+
+{ #category : #initialization }
 NNetwork >> updateWeights: initialInputs [
 	"To update the weights of the neurons using the initial inputs."
 
 	layers first updateWeights: initialInputs
+]
+
+{ #category : #initialization }
+NNetwork >> viewLearningCurve [
+	"To display a Roassal2 graph which characterize the overall learning process."
+
+	| b ds |
+	errors ifEmpty: [ ^ RTView new add: (RTLabel elementOn: 'Should first run the network'); yourself ].
+	b := RTDoubleGrapher new.
+	b extent: 500 @ 300.
+	
+	ds := RTData new.
+	ds samplingIfMoreThan: 2000; noDot; connectColor: Color blue.
+	ds points: (errors collectWithIndex: [ :y :i | i -> y ]).
+	ds x: #key; y: #value.
+	ds dotShape rectangle color: Color blue.
+	
+	b add: ds.
+	ds := RTData new.
+	ds samplingIfMoreThan: 2000.
+	ds noDot; connectColor: Color red.
+	ds points: (precisions collectWithIndex: [ :y :i | i -> y ]).
+	ds x: #key; y: #value.
+	ds dotShape rectangle color: Color blue.
+	
+	b addRight: ds.
+	b axisX
+		noDecimal;
+		title: 'Epoch'.
+	b axisY title: 'Error'.
+	b axisYRight
+		title: 'Precision';
+		color: Color red.
+		
+	^ b
+]
+
+{ #category : #initialization }
+NNetwork >> viewLearningCurveIn: composite [
+
+	<gtInspectorPresentationOrder: -10>
+	composite roassal2
+		title: 'Learning';
+		initializeView: [ self viewLearningCurve ]
+]
+
+{ #category : #initialization }
+NNetwork >> viewNetwork [
+
+	| b lb |
+	b := RTMondrian new.
+	b nodes: layers forEach: [ :aLayer |
+		b shape circle size: 20.
+		b nodes: aLayer neurons.
+		b layout verticalLine ].
+	
+	b shape arrowedLine; withShorterDistanceAttachPoint.
+	b edges connectTo: #nextLayer.
+	b layout horizontalLine gapSize: 30; center.
+	
+	b build.
+	
+	lb := RTLegendBuilder new.
+	lb view: b view.
+	lb addText: self numberOfNeurons asString, ' neurons'.
+	lb addText: self numberOfInputs asString, ' inputs'.
+	lb build.
+	
+	^ b view
+]
+
+{ #category : #initialization }
+NNetwork >> viewNetworkIn: composite [
+
+	<gtInspectorPresentationOrder: -5>
+	composite roassal2
+		title: 'Network';
+		initializeView: [ self viewNetwork ]
 ]
