@@ -89,6 +89,16 @@ Neuron >> feed: inputs [
 	^ output
 ]
 
+{ #category : #'as yet unclassified' }
+Neuron >> feedConvolutional: inputs withBias: aBias [
+	"To apply a volume as input and obtain the output of the neuron."
+
+	| z |
+	z := (NArray3D initializeWithValue: inputs) mult: (NArray3D initializeWithValue: (self weights)).
+	output := activationFunction eval: (aBias + z sum).
+	^ output
+]
+
 { #category : #accessing }
 Neuron >> initialize [
 	"To properly initialize a neuron with custom params"

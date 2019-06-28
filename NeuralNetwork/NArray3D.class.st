@@ -60,11 +60,11 @@ NArray3D >> depthSize [
 	cuboid anyOne anyOne size
 ]
 
-{ #category : #initialization }
+{ #category : #'as yet unclassified' }
 NArray3D >> getElementAtRow: i column: j depth: k [
-	"To get the value at the position (i, j, k) in the cuboid."
+	"To get one element in the cuboid by coordinates."
 
-	^ ((cuboid at: i) at: j) at: k
+	^ ((cuboid at: i) at: j) at: k.
 ]
 
 { #category : #initialization }
@@ -79,10 +79,12 @@ NArray3D >> initializeWidth: width height: height depth: depth [
 NArray3D >> mult: anArray3D [
 	"To directly multiply 3D array. We will multiply the values in the same indexes and return a 3D array."
 
-	^ NArray3D initializeWithValue: (self values collectWithIndex: [ :elmtX :indexI | 
+	| anArray |
+	anArray := self values collectWithIndex: [ :elmtX :indexI |
 		elmtX collectWithIndex: [ :elmtY :indexJ |
 			elmtY collectWithIndex: [ :elmtZ :indexK |
-				elmtZ * (anArray3D getElementAtRow: indexI column: indexJ depth: indexK) ] ] ])
+				elmtZ * (anArray3D getElementAtRow: indexI column: indexJ depth: indexK) ] ] ].
+	self values: anArray.
 ]
 
 { #category : #initialization }
@@ -122,9 +124,14 @@ NArray3D >> setElementAtRow: i column: j depth: k withValue: aNumber [
 
 { #category : #'as yet unclassified' }
 NArray3D >> sum [
-	"To sum all values in the 3D array. The returned value is a scalar."
+	"Compute the sum of all values in the 2D array corresponding to a projection of a specific z on plane (x y), and sum these values."
 
-	^ (self values collect: [ :elmtX | (elmtX collect: [ :elmtY | elmtY sum]) sum ]) sum
+	| depth xyTab resTab |
+	depth := self values anyOne anyOne size.
+	resTab := (1 to: depth) collect: [ :index |
+		xyTab := self values flatCollect: [ :row | row collect: [ :tab | tab at: index ] ].
+		xyTab sum ].
+	^ resTab sum
 ]
 
 { #category : #accessing }

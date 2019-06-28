@@ -36,33 +36,33 @@ NArray3DTest >> testBasic [
 	anArray := NArray3D initializeWithValue: cuboid.
 	
 	self assert: (anArray getElementAtRow: 1 column: 1 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 1 column: 2 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 1 column: 3 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 2 column: 1 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 2 column: 2 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 2 column: 3 depth: 1) equals: 2.
-	self assert: (anArray getElementAtRow: 3 column: 1 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 3 column: 2 depth: 1) equals: 0.
-	self assert: (anArray getElementAtRow: 3 column: 3 depth: 1) equals: 0.
-	
 	self assert: (anArray getElementAtRow: 1 column: 1 depth: 2) equals: 0.
-	self assert: (anArray getElementAtRow: 1 column: 2 depth: 2) equals: 0.
-	self assert: (anArray getElementAtRow: 1 column: 3 depth: 2) equals: 0.
-	self assert: (anArray getElementAtRow: 2 column: 1 depth: 2) equals: 0.
-	self assert: (anArray getElementAtRow: 2 column: 2 depth: 2) equals: 1.
-	self assert: (anArray getElementAtRow: 2 column: 3 depth: 2) equals: 0.
-	self assert: (anArray getElementAtRow: 3 column: 1 depth: 2) equals: 0.
-	self assert: (anArray getElementAtRow: 3 column: 2 depth: 2) equals: 2.
-	self assert: (anArray getElementAtRow: 3 column: 3 depth: 2) equals: 1.
-	
 	self assert: (anArray getElementAtRow: 1 column: 1 depth: 3) equals: 0.
+	self assert: (anArray getElementAtRow: 1 column: 2 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 1 column: 2 depth: 2) equals: 0.
 	self assert: (anArray getElementAtRow: 1 column: 2 depth: 3) equals: 0.
+	self assert: (anArray getElementAtRow: 1 column: 3 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 1 column: 3 depth: 2) equals: 0.
 	self assert: (anArray getElementAtRow: 1 column: 3 depth: 3) equals: 0.
+	
+	self assert: (anArray getElementAtRow: 2 column: 1 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 2 column: 1 depth: 2) equals: 0.
 	self assert: (anArray getElementAtRow: 2 column: 1 depth: 3) equals: 0.
+	self assert: (anArray getElementAtRow: 2 column: 2 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 2 column: 2 depth: 2) equals: 1.
 	self assert: (anArray getElementAtRow: 2 column: 2 depth: 3) equals: 2.
+	self assert: (anArray getElementAtRow: 2 column: 3 depth: 1) equals: 2.
+	self assert: (anArray getElementAtRow: 2 column: 3 depth: 2) equals: 0.
 	self assert: (anArray getElementAtRow: 2 column: 3 depth: 3) equals: 1.
+	
+	self assert: (anArray getElementAtRow: 3 column: 1 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 3 column: 1 depth: 2) equals: 0.
 	self assert: (anArray getElementAtRow: 3 column: 1 depth: 3) equals: 0.
+	self assert: (anArray getElementAtRow: 3 column: 2 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 3 column: 2 depth: 2) equals: 2.
 	self assert: (anArray getElementAtRow: 3 column: 2 depth: 3) equals: 2.
+	self assert: (anArray getElementAtRow: 3 column: 3 depth: 1) equals: 0.
+	self assert: (anArray getElementAtRow: 3 column: 3 depth: 2) equals: 1.
 	self assert: (anArray getElementAtRow: 3 column: 3 depth: 3) equals: 1.
 ]
 
@@ -119,9 +119,9 @@ NArray3DTest >> testSum [
 	| cuboid arr |
 	cuboid := #(
 					#(#(0 0 0) #(0 0 0) #(0 0 0))
-					#(#(0 0 0) #(0 1 2) #(2 0 1))
-					#(#(0 0 0) #(0 2 2) #(0 1 1))).				
+					#(#(0 0 0) #(-2 -1 2) #(0 0 -2))
+					#(#(0 0 0) #(0 1 0) #(0 0 0))).				
 	arr := NArray3D initializeWithValue: cuboid.
 	
-	self assert: (arr sum) equals: 12.
+	self assert: (arr sum) equals: -2.
 ]

@@ -1,9 +1,9 @@
 "
-This class allow to test the behavior of a neuron in a convolutional neural network.
+This class allow to test a convolution unit.
 
-There, we just implement few basic test with features and bias.
+This class will allow to feed a volume as input and weights of neuron.
 
-No collaborators for now. 
+@yvanGuemkam. 
 
 Public API and Key Messages
 
@@ -25,18 +25,22 @@ Class {
 }
 
 { #category : #tests }
-CNeuronTest >> testBasic [
-	"To test if a Neuron can operate on volumetric inputs and weights, like a convolutional neuron do."
+CNeuronTest >> testFeed [
+	"Test the output of a convolutional neuron for specific input and bias."
 
-	| cuboid1 cuboid2 arr n |
-	cuboid1 := #(
+	| c inputs |
+	c := Neuron new.
+	c bias: 0; tanh;
+		weights: #(
+						#(#(-1 1 0) #(1 0 -1) #(0 -1 0))
+						#(#(1 -1 1) #(-1 -1 1) #(-1 0 -1))
+						#(#(0 1 0) #(-1 1 0) #(0 0 0))
+	).	
+	inputs := #(
 					#(#(0 0 0) #(0 0 0) #(0 0 0))
-					#(#(0 0 0) #(0 1 2) #(2 0 1))
-					#(#(0 0 0) #(0 2 2) #(0 1 1))).
-	cuboid2 := #(
-					#(#(1 0 -1) #(0 1 1) #(-1 0 1))
-					#(#(1 -1 1) #(1 1 0) #(0 -1 1))
-					#(#(-1 1 0) #(0 -1 1) #(-1 -1 -1))).
-	n := Neuron new.
+					#(#(0 0 0) #(2 1 2) #(0 1 2))
+					#(#(0 0 0) #(0 1 2) #(2 1 1))
+	).
 	
+	self assert: (c feedConvolutional: inputs withBias: 1) equals: -1.
 ]

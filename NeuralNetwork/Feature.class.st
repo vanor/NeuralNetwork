@@ -56,6 +56,13 @@ Feature >> characteristics [
 ]
 
 { #category : #accessing }
+Feature >> characteristics: aVolumeOfCharacteristics [
+	"To set characteristics attribute of the feature."
+
+	characteristics := aVolumeOfCharacteristics.
+]
+
+{ #category : #accessing }
 Feature >> depth [
 	"To get depth attribute which indicates the index of the feature."
 

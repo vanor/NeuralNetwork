@@ -35,7 +35,9 @@ Class {
 		'receptiveFields',
 		'paddedInput',
 		'stride',
-		'zeroPaddingSize'
+		'zeroPaddingSize',
+		'previousLayer',
+		'nextLayer'
 	],
 	#category : #NeuralNetwork
 }
@@ -47,9 +49,7 @@ CNeuronLayer >> configurePaddingSizeForInputSize: inputSize andOutputSize: outpu
 	| featureSize |
 	featureSize := features anyOne characteristics size.
 	receptiveFields := (1 to: outputSize) collect: [ :notUsed | Array new: outputSize ].
-	neurons := (1 to: outputSize) collect: [ :notUsed1 |
-								(1 to: outputSize) collect: [ :notUsed2 |
-									(1 to: (self numberOfFeatures)) collect: [ :notUsed3 | Neuron new ] ] ].
+	self neuronsWidth: outputSize height: outputSize depth: (self numberOfFeatures).
 	zeroPaddingSize := (((outputSize - 1) * stride) - inputSize + (featureSize)) / 2
 ]
 
@@ -75,7 +75,7 @@ CNeuronLayer >> createPaddedCuboid: inputCuboid [
 
 { #category : #'as yet unclassified' }
 CNeuronLayer >> createReceptiveFields [
-	"To execute the zero padding procedure on the input and create the receptive fields."
+	"To create the receptive fields."
 
 	| paddedSize featureSize receptiveField cuboid |
 	featureSize := features anyOne characteristics size.
@@ -100,14 +100,37 @@ CNeuronLayer >> features [
 	^ features.
 ]
 
+{ #category : #accessing }
+CNeuronLayer >> features: anArrayOfFeatures [
+	"To set features of the layer"
+
+	features := anArrayOfFeatures.
+]
+
 { #category : #initialization }
 CNeuronLayer >> feed: anInputVolume [
 	"To feed this layer with some input volume value."
 
-	| inputSize |
+	| inputSize outputVolume |
 	inputSize := anInputVolume size.
 	self configurePaddingSizeForInputSize: inputSize andOutputSize: 3.
 	self createPaddedCuboid: anInputVolume.
+	self createReceptiveFields;
+			setWeightsIntoNeurons;
+			feedWithReceptiveField.
+	outputVolume := neurons collect: [ :row | row collect: [ :col | col collect: [ :neuron | neuron output ]]].
+	(outputVolume anyOne size = 1) ifTrue: [ nextLayer ifNotNil: [ nextLayer feed: (outputVolume flattened) ] ] 
+											ifFalse: [ nextLayer ifNotNil: [ nextLayer feed: outputVolume ] ]
+]
+
+{ #category : #accessing }
+CNeuronLayer >> feedWithReceptiveField [
+	"To give proper input in each neuron in the layer."
+
+	features doWithIndex: [ :feature :index |
+		neurons doWithIndex: [ :aRowOfNeurons :rowIndex |
+			aRowOfNeurons doWithIndex: [ :anArrayOfNeurons :columnIndex |
+				(anArrayOfNeurons at: index) feedConvolutional: (((receptiveFields at: rowIndex) at: columnIndex) entries) withBias: (feature bias) ]]].
 ]
 
 { #category : #'as yet unclassified' }
@@ -139,7 +162,21 @@ CNeuronLayer >> neuronsWidth: width height: height depth: depth [
 
 	neurons := (1 to: width) collect: [ :notUsed1 |
 		(1 to: height) collect: [ :notUsed2 |
-		(1 to: depth) collect: [ :notUsed3 | Neuron new tanh ] ] ]
+		(1 to: depth) collect: [ :notUsed3 | Neuron new bias: 0; tanh ] ] ]
+]
+
+{ #category : #accessing }
+CNeuronLayer >> nextLayer [
+	"To get the nextLayer attribute."
+
+	^ nextLayer.
+]
+
+{ #category : #accessing }
+CNeuronLayer >> nextLayer: aLayer [
+	"To set the nextLayer attribute."
+
+	nextLayer := aLayer
 ]
 
 { #category : #accessing }
@@ -157,10 +194,27 @@ CNeuronLayer >> outputVolumeSize [
 ]
 
 { #category : #accessing }
+CNeuronLayer >> previousLayer [
+	"To get the previousLayer attribute."
+
+	^ previousLayer
+]
+
+{ #category : #accessing }
+CNeuronLayer >> previousLayer: aLayer [
+	"To set the previousLayer attribute."
+
+	previousLayer := aLayer
+]
+
+{ #category : #accessing }
 CNeuronLayer >> setWeightsIntoNeurons [
 	"To dispatch shared weights to all neurons that will do a convolution on a filter."
 
-	1.
+	features doWithIndex: [ :feature :index |
+		neurons do: [ :aRowOfNeurons |
+			aRowOfNeurons do: [ :anArrayOfNeurons |
+				(anArrayOfNeurons at: index) weights: (feature characteristics) ] ] ].
 ]
 
 { #category : #accessing }
