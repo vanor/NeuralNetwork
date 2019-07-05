@@ -43,13 +43,13 @@ Class {
 }
 
 { #category : #'as yet unclassified' }
-CNeuronLayer >> configurePaddingSizeForInputSize: inputSize andOutputSize: outputSize [
+CNeuronLayer >> configurePaddingSizeForInputSize: inputSize [
 	"To calculate the length of zero padding surface."
 
-	| featureSize |
+	| featureSize outputSize |
 	featureSize := features anyOne characteristics size.
+	outputSize := neurons size.
 	receptiveFields := (1 to: outputSize) collect: [ :notUsed | Array new: outputSize ].
-	self neuronsWidth: outputSize height: outputSize depth: (self numberOfFeatures).
 	zeroPaddingSize := (((outputSize - 1) * stride) - inputSize + (featureSize)) / 2
 ]
 
@@ -113,7 +113,7 @@ CNeuronLayer >> feed: anInputVolume [
 
 	| inputSize outputVolume |
 	inputSize := anInputVolume size.
-	self configurePaddingSizeForInputSize: inputSize andOutputSize: 3.
+	self configurePaddingSizeForInputSize: inputSize.
 	self createPaddedCuboid: anInputVolume.
 	self createReceptiveFields;
 			setWeightsIntoNeurons;
@@ -142,11 +142,12 @@ CNeuronLayer >> initialize [
 ]
 
 { #category : #'as yet unclassified' }
-CNeuronLayer >> initializeForNbOfFeatures: nbOfFeatures withWidth: width height: height depth: depth [
+CNeuronLayer >> initializeForNbOfFeatures: nbOfFeatures withWidth: width height: height depth: depth andOutputSize: outputSize [
 	"To configure the layer with an 3D array of features."
 
 	features := (1 to: nbOfFeatures) collect: [ :index |
-		Feature new initializeWidth: width height: height depth: depth; depth: index ]
+		Feature new initializeWidth: width height: height depth: depth; depth: index ].
+	self neuronsWidth: outputSize height: outputSize depth: nbOfFeatures.
 ]
 
 { #category : #accessing }

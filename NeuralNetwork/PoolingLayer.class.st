@@ -40,12 +40,10 @@ Class {
 }
 
 { #category : #initialization }
-PoolingLayer >> configureOutputForInputSize: inputSize withStride: aStride andReceptiveFieldSize: anInteger [
+PoolingLayer >> configureOutputForInputSize: inputSize [
 	"To compute the output volume size and make some configurations."
 
 	| outputSize |
-	receptiveFieldSize := anInteger.
-	self stride: aStride.
 	outputSize := ((inputSize - receptiveFieldSize) / stride) + 1.
 	units := (1 to: outputSize) collect: [ :notUsed1 | 
 		(1 to: outputSize) collect: [ :notUsed2 | PoolingUnit new ] ].
@@ -77,7 +75,7 @@ PoolingLayer >> feed: inputVolume [
 
 	| inputSize outputVolume |
 	inputSize := inputVolume size.
-	self configureOutputForInputSize: inputSize withStride: stride andReceptiveFieldSize: 3.
+	self configureOutputForInputSize: inputSize.
 	self createReceptiveFields: inputVolume.
 	self feedWithReceptiveField.
 	outputVolume := units collect: [ :row | row collect: [ :unit | unit outputArray ]].
@@ -98,6 +96,14 @@ PoolingLayer >> initialize [
 
 	super initialize.
 	mode := 'MAX'.
+]
+
+{ #category : #initialization }
+PoolingLayer >> initializeForReceptiveFieldSize: anInteger withStride: aStride [
+	"To configure receptive fields size and stride."
+
+	receptiveFieldSize := anInteger.
+	stride := aStride.
 ]
 
 { #category : #accessing }

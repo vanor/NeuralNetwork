@@ -29,7 +29,7 @@ CNeuronLayerTest >> testBasicConvolution [
 	"To test if a simple convolution work well."
 
 	| cl cube f1 f2 outputs |
-	cl := CNeuronLayer new initializeForNbOfFeatures: 2 withWidth: 3 height: 3 depth: 3.
+	cl := CNeuronLayer new initializeForNbOfFeatures: 2 withWidth: 3 height: 3 depth: 3 andOutputSize: 3.
 	cl stride: 2.
 	f1 := Feature new.
 	f1 characteristics: #(

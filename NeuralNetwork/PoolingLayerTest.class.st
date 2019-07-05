@@ -36,12 +36,9 @@ PoolingLayerTest >> testBasic [
 					#(#(1) #(2) #(3) #(4))
 	).
 	pl := PoolingLayer new.
-	pl configureOutputForInputSize: (cuboid size) withStride: 2 andReceptiveFieldSize: 2.
-	pl createReceptiveFields: cuboid.
-	pl feedWithReceptiveField.
-	output := pl units collect: [ :row |
-													row collect: [ :unit |
-														unit outputArray ] ].
+	pl initializeForReceptiveFieldSize: 2 withStride: 2.
+	pl feed: cuboid.
+	output := pl units collect: [ :row | row collect: #outputArray ].
 												
 	self assert: (output size) equals: 2.
 	self assert: (output anyOne size) equals: 2.
