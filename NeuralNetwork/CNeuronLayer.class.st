@@ -42,6 +42,81 @@ Class {
 	#category : #NeuralNetwork
 }
 
+{ #category : #accessing }
+CNeuronLayer >> adjustBias [
+	"To adjust bias of all features in this layer."
+
+	| width height res |
+	width := neurons size.
+	height := neurons anyOne size.
+	features := features collectWithIndex: [ :feature :i |
+		res := 0.0.
+		1 to: width do: [ :m |
+			1 to: height do: [ :n |
+				res := (((neurons at: m) at: n) at: i) delta + res ]].
+		feature bias: (feature bias - res); yourself ]
+]
+
+{ #category : #initialization }
+CNeuronLayer >> adjustDeltaWithNextLayer [
+	"The next layer is not a fully connected layer."
+	
+	| maxIndexesCuboid nextLayerDeltas |
+	nextLayerDeltas := self nextLayer deltas.
+	maxIndexesCuboid := self nextLayer units collect: [ :row | row collect: #indexesArray ].
+	neurons do: [ :row | row collect: [ :col | col collect: [ :neuron | neuron adjustDeltaWith: 0 ]]].
+	
+	maxIndexesCuboid doWithIndex: [ :row :i |
+		row doWithIndex: [ :col :j |
+			col doWithIndex: [ :maxCoordinates :k |
+				| rowIndex columnIndex |
+				rowIndex := (stride * (i - 1) + (maxCoordinates first)).
+				columnIndex := (stride * (j - 1) + (maxCoordinates second)).
+				(((neurons at: rowIndex) at: columnIndex) at: k) adjustDeltaWith: (((nextLayerDeltas at: i) at: j) at: k) ]]].
+]
+
+{ #category : #initialization }
+CNeuronLayer >> adjustDeltaWithoutNextLayer [
+	"The next layer is a fully connected layer."
+	
+	| nextLayerDeltas |
+	nextLayerDeltas := self nextLayer deltas.
+	neurons doWithIndex: [ :row :n |
+		row doWithIndex: [ :col :p |
+			col doWithIndex: [ :neuronL :m |
+				neuronL adjustDeltaWith: (nextLayerDeltas at: m) ]]]
+]
+
+{ #category : #'as yet unclassified' }
+CNeuronLayer >> adjustWeightsWithInputs: inputs [
+	"To adjust weights of all features in this layer."
+
+	| width height cuboid res |
+	width := neurons size.
+	height := neurons anyOne size.
+	features := features collectWithIndex: [ :feature :i |
+		cuboid := feature characteristics collectWithIndex: [ :row :k |
+			row collectWithIndex: [ :col :l |
+				col collectWithIndex: [ :weight :j |
+					res := 0.0.
+					1 to: width do: [ :m |
+						1 to: height do: [ :n |
+							res := (((inputs at: (stride * (m - 1) + k)) at: (stride * (n - 1) + l)) at: j) * 
+										((((neurons at: m) at: n) at: i) delta) ]].
+					weight - res ]]].
+		feature characteristics: cuboid; yourself ]
+]
+
+{ #category : #initialization }
+CNeuronLayer >> backwardPropagateError [
+	"To adjust weights of features in many cases."
+	
+	self nextLayer isFullyConnected ifTrue: [ self adjustDeltaWithoutNextLayer ]
+												ifFalse: [ self adjustDeltaWithNextLayer ].
+
+	self previousLayer notNil ifTrue: [ self previousLayer backwardPropagateError ].
+]
+
 { #category : #'as yet unclassified' }
 CNeuronLayer >> configurePaddingSizeForInputSize: inputSize [
 	"To calculate the length of zero padding surface."
@@ -93,6 +168,13 @@ CNeuronLayer >> createReceptiveFields [
 			(receptiveFields at: rowIndex) at: columnIndex put: receptiveField ] ].
 ]
 
+{ #category : #'as yet unclassified' }
+CNeuronLayer >> deltas [
+	"To collect deltas of all neurons of the layer."
+
+	^ neurons collect: [ :row | row collect: [ :col | col collect: #delta ] ].
+]
+
 { #category : #accessing }
 CNeuronLayer >> features [
 	"To get features of the layer"
@@ -119,7 +201,7 @@ CNeuronLayer >> feed: anInputVolume [
 			setWeightsIntoNeurons;
 			feedWithReceptiveField.
 	outputVolume := neurons collect: [ :row | row collect: [ :col | col collect: [ :neuron | neuron output ]]].
-	(outputVolume anyOne size = 1) ifTrue: [ nextLayer ifNotNil: [ nextLayer feed: (outputVolume flattened) ] ] 
+	^ (outputVolume size = 1) ifTrue: [ nextLayer ifNotNil: [ nextLayer feed: ((outputVolume at: 1) at: 1) ] ] 
 											ifFalse: [ nextLayer ifNotNil: [ nextLayer feed: outputVolume ] ]
 ]
 
@@ -150,6 +232,13 @@ CNeuronLayer >> initializeForNbOfFeatures: nbOfFeatures withWidth: width height:
 	self neuronsWidth: outputSize height: outputSize depth: nbOfFeatures.
 ]
 
+{ #category : #testing }
+CNeuronLayer >> isFullyConnected [
+	"To know if the layer is a fully connected layer."
+
+	^ false
+]
+
 { #category : #accessing }
 CNeuronLayer >> neurons [
 	"To get the neurons of the layer"
@@ -161,9 +250,9 @@ CNeuronLayer >> neurons [
 CNeuronLayer >> neuronsWidth: width height: height depth: depth [
 	"To configure the layer with an 3D array of neurons."
 
-	neurons := (1 to: width) collect: [ :notUsed1 |
-		(1 to: height) collect: [ :notUsed2 |
-		(1 to: depth) collect: [ :notUsed3 | Neuron new bias: 0; tanh ] ] ]
+	| arr |
+	arr := (1 to: width) collect: [ :notUsed1 | (1 to: height) collect: [ :notUsed2 | Array new: depth ]].
+	neurons := arr collect: [ :i | i collect: [ :j | j collect: [ :k | Neuron new bias: 0; tanh; yourself ]]]. 
 ]
 
 { #category : #accessing }
@@ -192,6 +281,14 @@ CNeuronLayer >> outputVolumeSize [
 	"To get outputVolumeSize of the layer"
 
 	^ receptiveFields size.
+]
+
+{ #category : #'as yet unclassified' }
+CNeuronLayer >> outputs [
+	"To return output volume."
+
+	^ neurons collect: [ :row |
+		row collect: [ :col | col collect: #output ] ]
 ]
 
 { #category : #accessing }
@@ -230,6 +327,16 @@ CNeuronLayer >> stride: anInteger [
 	"To set stride of the layer"
 
 	stride := anInteger.
+]
+
+{ #category : #initialization }
+CNeuronLayer >> updateWeights [
+	"To update weights of a neuron based the set of previous layer outputs as input. Then, we are in the second hidden layer or in the output layer."
+	
+	self adjustWeightsWithInputs: paddedInput.
+	self adjustBias.
+	
+	self nextLayer ifNotNil: [ self nextLayer updateWeights ]
 ]
 
 { #category : #accessing }

@@ -34,10 +34,63 @@ Class {
 		'stride',
 		'receptiveFieldSize',
 		'previousLayer',
-		'nextLayer'
+		'nextLayer',
+		'deltaCuboid'
 	],
 	#category : #NeuralNetwork
 }
+
+{ #category : #initialization }
+PoolingLayer >> adjustDeltaWithNextLayer [
+	"The next layer is not a fully connected layer."
+	
+	| width height depth nextLayerDeltas nextLayerFeatures deltaWidth deltaHeight featuresWidth featuresHeight res cond |
+	width := units size.
+	height := units anyOne size.
+	depth := units anyOne anyOne outputArray size.
+	nextLayerDeltas := self nextLayer deltas.
+	nextLayerFeatures := self nextLayer features.
+	deltaWidth := nextLayerDeltas size.
+	deltaHeight := nextLayerDeltas anyOne size.
+	featuresWidth := nextLayerFeatures anyOne characteristics size.
+	featuresHeight := nextLayerFeatures anyOne characteristics anyOne size.
+	deltaCuboid := (1 to: width) collect: [ :n | (1 to: height) collect: [ :p |
+							(1 to: depth) collect: [ :m |
+								res := 0.0.
+								1 to: deltaWidth do: [ :j |
+									1 to: featuresWidth do: [ :b |
+										1 to: deltaHeight do: [ :k |
+											1 to: featuresHeight do: [ :c |
+												nextLayerFeatures doWithIndex: [ :feat :i |
+													cond := (j * stride + b = n) and: (k * stride + c = p).
+													cond ifTrue: [
+														res := res + ((((nextLayerDeltas at: j) at: k) at: i)
+																	* (((feat characteristics at: b) at: c) at: m)) ] ]]]]].
+								res ]]].
+]
+
+{ #category : #initialization }
+PoolingLayer >> adjustDeltaWithoutNextLayer [
+	"The next layer is a fully connected layer."
+	
+	| nextLayerDeltas width height depth |
+	width := units size.
+	height := units anyOne size.
+	depth := units anyOne anyOne outputArray size.
+	nextLayerDeltas := self nextLayer deltas.
+	deltaCuboid := (1 to: width) collect: [ :i | (1 to: height) collect: [ :j |
+							(1 to: depth) collect: [ :k | nextLayerDeltas at: k ] ] ].
+]
+
+{ #category : #initialization }
+PoolingLayer >> backwardPropagateError [
+	"To adjust weights of features in many cases."
+	
+	self nextLayer isFullyConnected ifTrue: [ self adjustDeltaWithoutNextLayer ]
+												ifFalse: [ self adjustDeltaWithNextLayer ].
+
+	self previousLayer notNil ifTrue: [ self previousLayer backwardPropagateError ].
+]
 
 { #category : #initialization }
 PoolingLayer >> configureOutputForInputSize: inputSize [
@@ -69,6 +122,20 @@ PoolingLayer >> createReceptiveFields: inputs [
 			(receptiveFields at: rowIndex) at: columnIndex put: receptiveField ] ].
 ]
 
+{ #category : #'as yet unclassified' }
+PoolingLayer >> deltas [
+	"To get delta from next convlolutional layer."
+
+	^ deltaCuboid
+]
+
+{ #category : #accessing }
+PoolingLayer >> features [
+	"To get features of the next convolutional layer."
+
+	^ self nextLayer features
+]
+
 { #category : #initialization }
 PoolingLayer >> feed: inputVolume [
 	"To execute the pooling on some inputs."
@@ -79,7 +146,8 @@ PoolingLayer >> feed: inputVolume [
 	self createReceptiveFields: inputVolume.
 	self feedWithReceptiveField.
 	outputVolume := units collect: [ :row | row collect: [ :unit | unit outputArray ]].
-	nextLayer ifNotNil: [ nextLayer feed: outputVolume ].
+	^ (outputVolume anyOne size = 1) ifTrue: [ nextLayer ifNotNil: [ nextLayer feed: (outputVolume flattened) ] ] 
+											ifFalse: [ nextLayer ifNotNil: [ nextLayer feed: outputVolume ] ]
 ]
 
 { #category : #initialization }
@@ -104,6 +172,13 @@ PoolingLayer >> initializeForReceptiveFieldSize: anInteger withStride: aStride [
 
 	receptiveFieldSize := anInteger.
 	stride := aStride.
+]
+
+{ #category : #testing }
+PoolingLayer >> isFullyConnected [
+	"To know if the layer is a fully connected layer."
+
+	^ false
 ]
 
 { #category : #accessing }
@@ -132,6 +207,13 @@ PoolingLayer >> nextLayer: aLayer [
 	"To set the nextLayer attribute."
 
 	nextLayer := aLayer
+]
+
+{ #category : #'as yet unclassified' }
+PoolingLayer >> outputs [
+	"To get output of the layer."
+
+	^ units collect: [ :row | row collect: #outputArray ]
 ]
 
 { #category : #accessing }
@@ -167,4 +249,11 @@ PoolingLayer >> units [
 	"To get units attribute of the layer."
 
 	^ units
+]
+
+{ #category : #initialization }
+PoolingLayer >> updateWeights [
+	"To skip because it is a pooling layer."
+	
+	self nextLayer notNil ifTrue: [ self nextLayer updateWeights ].
 ]

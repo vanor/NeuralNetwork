@@ -84,7 +84,7 @@ Neuron >> feed: inputs [
 	"To apply a set of input values and obtaining the output value of a simple neuron"
 
 	| z |
-	z := (inputs with: weights collect: [ :x :w | x * w]) sum + self bias.
+	z := (inputs with: weights collect: [ :x :w | x * w ]) sum + bias.
 	output := activationFunction eval: z.
 	^ output
 ]
@@ -154,7 +154,7 @@ Neuron >> tanh [
 Neuron >> train: inputs desiredOutput: desiredOutput [
 	"To adjust weights and bias of a neuron for a training data (inputs, desiredOutput)"
 
-	| diff output delta |
+	| diff |
 	output := self feed: inputs.
 	diff := desiredOutput - output.
 	delta := diff * (activationFunction derivative: output).

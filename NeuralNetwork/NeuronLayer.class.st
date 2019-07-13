@@ -64,12 +64,25 @@ NeuronLayer >> backwardPropagateError: expected [
 	self previousLayer notNil ifTrue: [ self previousLayer backwardPropagateError ].
 ]
 
+{ #category : #'as yet unclassified' }
+NeuronLayer >> deltas [
+	"To get deltas."
+
+	| depth sumDelta |
+	depth := neurons anyOne weights size.
+	^ (1 to: depth) collect: [ :j |
+		sumDelta := 0.0.
+		neurons do: [ :neuron |
+			sumDelta := (neuron weights at: j) * (neuron delta) + sumDelta ].
+		sumDelta ]
+]
+
 { #category : #initialization }
 NeuronLayer >> feed: someInputValues [
 	"To feed the neuron layer with some inputs."
 	
 	| someOutputs |
-	someOutputs := neurons collect: [ :n | n feed: someInputValues ] as: Array.
+	someOutputs := neurons collect: [ :n | n feed: someInputValues ].
 	^ self isOutputLayer ifTrue: [ someOutputs ] ifFalse: [ nextLayer feed: someOutputs ]
 ]
 
@@ -85,6 +98,13 @@ NeuronLayer >> initializeNbOfNeurons: nbOfNeurons nbOfWeights: nbOfWeights using
 		weights := (1 to: nbOfWeights) collect: [ :ii | random next * 4 - 2 ].
 		Neuron new sigmoid; weights: weights; bias: (random next * 4 - 2) ].
 	self learningRate: 0.1
+]
+
+{ #category : #testing }
+NeuronLayer >> isFullyConnected [
+	"To know if the layer is a fully connected layer."
+
+	^ true
 ]
 
 { #category : #initialization }
@@ -150,7 +170,8 @@ NeuronLayer >> updateWeights [
 	"To update weights of a neuron based the set of previous layer outputs as input. Then, we are in the second hidden layer or in the output layer."
 	
 	| inputs |
-	inputs := self previousLayer neurons collect: #output.
+	self previousLayer isFullyConnected ifTrue: [ inputs := self previousLayer neurons collect: #output ]
+								 ifFalse: [ inputs := self previousLayer outputs flattened ].
 	
 	self updateWeights: inputs
 ]
