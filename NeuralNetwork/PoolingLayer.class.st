@@ -41,7 +41,17 @@ Class {
 }
 
 { #category : #initialization }
-PoolingLayer >> adjustDeltaWithNextLayer [
+PoolingLayer >> backwardPropagateError [
+	"To adjust weights of features in many cases."
+	
+	self nextLayer isFullyConnected ifTrue: [ self computeDeltaWithoutNextLayer ]
+												ifFalse: [ self computeDeltaWithNextLayer ].
+
+	self previousLayer notNil ifTrue: [ self previousLayer backwardPropagateError ].
+]
+
+{ #category : #initialization }
+PoolingLayer >> computeDeltaWithNextLayer [
 	"The next layer is not a fully connected layer."
 	
 	| width height depth nextLayerDeltas nextLayerFeatures deltaWidth deltaHeight featuresWidth featuresHeight res cond |
@@ -62,7 +72,7 @@ PoolingLayer >> adjustDeltaWithNextLayer [
 										1 to: deltaHeight do: [ :k |
 											1 to: featuresHeight do: [ :c |
 												nextLayerFeatures doWithIndex: [ :feat :i |
-													cond := (j * stride + b = n) and: (k * stride + c = p).
+													cond := (stride * (j - 1) + b = n) and: (stride * (k - 1) + c = p).
 													cond ifTrue: [
 														res := res + ((((nextLayerDeltas at: j) at: k) at: i)
 																	* (((feat characteristics at: b) at: c) at: m)) ] ]]]]].
@@ -70,7 +80,7 @@ PoolingLayer >> adjustDeltaWithNextLayer [
 ]
 
 { #category : #initialization }
-PoolingLayer >> adjustDeltaWithoutNextLayer [
+PoolingLayer >> computeDeltaWithoutNextLayer [
 	"The next layer is a fully connected layer."
 	
 	| nextLayerDeltas width height depth |
@@ -80,16 +90,6 @@ PoolingLayer >> adjustDeltaWithoutNextLayer [
 	nextLayerDeltas := self nextLayer deltas.
 	deltaCuboid := (1 to: width) collect: [ :i | (1 to: height) collect: [ :j |
 							(1 to: depth) collect: [ :k | nextLayerDeltas at: k ] ] ].
-]
-
-{ #category : #initialization }
-PoolingLayer >> backwardPropagateError [
-	"To adjust weights of features in many cases."
-	
-	self nextLayer isFullyConnected ifTrue: [ self adjustDeltaWithoutNextLayer ]
-												ifFalse: [ self adjustDeltaWithNextLayer ].
-
-	self previousLayer notNil ifTrue: [ self previousLayer backwardPropagateError ].
 ]
 
 { #category : #initialization }

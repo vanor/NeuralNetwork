@@ -24,12 +24,11 @@ Class {
 	#category : #NeuralNetwork
 }
 
-{ #category : #tests }
-CNetworkTest >> testBasic [
-	"To test the feeding of a CNN with four layers. CONV - POOL - CONV - FULLY."
+{ #category : #'as yet unclassified' }
+CNetworkTest >> constructCuboid [
+	"To construct data for feeding the network."
 
-	| r cube cl1 cl2 pl nl net f1 f2 f3 f4 f5 res1 res2 res3 res4 |
-	r := Random seed: 42.
+	| cube |
 	cube := #(
 		#(#(2 1 2) #(0 1 2) #(1 1 2) #(2 2 0) #(0 2 1) #(1 0 2))
 		#(#(0 1 2) #(2 1 1) #(2 1 0) #(1 2 0) #(0 2 2) #(2 1 0))
@@ -38,6 +37,14 @@ CNetworkTest >> testBasic [
 		#(#(1 0 1) #(2 0 0) #(1 0 2) #(1 0 0) #(2 2 0) #(2 1 0))
 		#(#(1 0 2) #(1 0 0) #(1 0 1) #(2 0 2) #(1 1 0) #(0 2 1))).
 		
+	^ cube
+]
+
+{ #category : #'as yet unclassified' }
+CNetworkTest >> constructNetwork [
+	"To construct a simple CNN with four layers. CONV - POOL - CONV - FULLY."
+
+	| cl1 cl2 pl nl net f1 f2 f3 f4 f5 |
 	cl1 := CNeuronLayer new initializeForNbOfFeatures: 2 withWidth: 2 height: 2 depth: 3 andOutputSize: 4.
 	cl1 stride: 2.
 	f1 := Feature new bias: 1; characteristics: #(
@@ -64,19 +71,46 @@ CNetworkTest >> testBasic [
 	cl2 features: { f3 . f4 . f5 }.
 
 	nl := NeuronLayer new.
-	nl initializeNbOfNeurons: 3 nbOfWeights: 3 using: r.
+	nl initializeNbOfNeurons: 3 nbOfWeights: 3 using: (Random seed: 42).
 	nl neurons collectWithIndex: [ :neuron :index | |weights|
 		weights := (1 to: 3) collect: [ :ii | index + ii ].
 		neuron weights: weights; bias: index ].
 
 	net := CNNetwork new.
 	net addLayer: cl1; addLayer: pl; addLayer: cl2; addLayer: nl.
+	
+	^ net
+]
+
+{ #category : #tests }
+CNetworkTest >> testBeforeLastLayerComputationOfDelta [
+	"To test if the layer just before the last layer well evaluate neurons delta."
+
+	| net cube result |
+	net := self constructNetwork.
+	cube := self constructCuboid.
+	net train: { cube } withLabels: { 2 } andNbEpoch: 1.
+	result := net layers third neurons collect: [ :row | row collect: [ :col | col collect: #delta ] ].
+	
+	self assert: (result anyOne anyOne size) equals: 3. "delta next layer == d and output this layer == s"
+	self assert: (result anyOne anyOne at: 1) equals: -0.0001872501367200737. "(d1*2 + d2*3 + d3*4) * f'(s1)"
+	self assert: (result anyOne anyOne at: 2) equals: -0.00028020168386293416. "(d1*3 + d2*4 + d3*5) * f'(s1)"
+	self assert: (result anyOne anyOne at: 3) equals: -0.00037282848348563707. "(d1*4 + d2*5 + d3*6) * f'(s1)"
+]
+
+{ #category : #tests }
+CNetworkTest >> testFeed [
+	"To test the feeding of a CNN with four layers. CONV - POOL - CONV - FULLY."
+
+	| cube net res1 res2 res3 res4 |
+	cube := self constructCuboid.
+	net := self constructNetwork.
 	net feed: cube.
 	
-	res1 := cl1 neurons collect: [ :row | row collect: [ :col | col collect: #output ] ].
-	res2 := pl units collect: [ :row | row collect: #outputArray ].
-	res3 := cl2 neurons collect: [ :row | row collect: [ :col | col collect: #output ] ].
-	res4 := nl neurons collect: #output.
+	res1 := (net layers first) neurons collect: [ :row | row collect: [ :col | col collect: #output ] ].
+	res2 := (net layers second) units collect: [ :row | row collect: #outputArray ].
+	res3 := (net layers third) neurons collect: [ :row | row collect: [ :col | col collect: #output ] ].
+	res4 := (net layers fourth) neurons collect: #output.
 	
 	self assert: (((res1 at: 1) at: 1) at: 1) equals: 0.9950547536867305. "tanh 3"
 	self assert: (((res1 at: 1) at: 2) at: 1) equals: 0.9950547536867305. "tanh 3"
@@ -130,4 +164,35 @@ CNetworkTest >> testBasic [
 	self assert: (res4 at: 2) equals: 0.9999991636874457. "sigmoid ((3*x1) + (4*x2) + (5*x3) +2)"
 	self assert: (res4 at: 3) equals: 0.9999999846604051. "sigmoid ((4*x1) + (5*x2) + (6*x3) +3)"
 	self assert: (net outputLayer neurons collect: #output) equals: res4.
+]
+
+{ #category : #tests }
+CNetworkTest >> testLastLayerComputationOfDelta [
+	"To test if the last layer well evaluate neurons delta."
+
+	| net cube result |
+	net := self constructNetwork.
+	cube := self constructCuboid.
+	net train: { cube } withLabels: { 2 } andNbEpoch: 1.
+	result := net layers last neurons collect: #delta.
+	
+	self assert: (result size) equals: 3.
+	self assert: (result at: 1) equals: -4.558948174976358e-5. "-0.9999544063607851 * f'(0.9999544063607851)"
+	self assert: (result at: 2) equals: -8.363111554830259e-7. "-0.9999991636874457* f'(0.9999991636874457)"
+	self assert: (result at: 3) equals: 2.353031689337116e-16. "1.5339594927610278e-8 * f'(0.9999999846604051)"
+]
+
+{ #category : #tests }
+CNetworkTest >> testSecondLayerComputationOfDelta [
+	"To test if this layer compute delta properly."
+
+	| net cube result |
+	net := self constructNetwork.
+	cube := self constructCuboid.
+	net train: { cube } withLabels: { 2 } andNbEpoch: 1.
+	result := net layers second deltas.
+	
+	self assert: (result size) equals: 2.
+	self assert: (result anyOne size) equals: 2.
+	self assert: (result anyOne anyOne size) equals: 2.
 ]

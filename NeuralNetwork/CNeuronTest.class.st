@@ -42,5 +42,5 @@ CNeuronTest >> testFeed [
 					#(#(0 0 0) #(0 1 2) #(2 1 1))
 	).
 	
-	self assert: (c feedConvolutional: inputs withBias: 1) equals: -1.
+	self assert: (c feedConvolutional: inputs withBias: 1) equals: -0.7615941559557646. "tanh -1"
 ]

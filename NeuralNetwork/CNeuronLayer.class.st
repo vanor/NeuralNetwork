@@ -54,37 +54,8 @@ CNeuronLayer >> adjustBias [
 		1 to: width do: [ :m |
 			1 to: height do: [ :n |
 				res := (((neurons at: m) at: n) at: i) delta + res ]].
-		feature bias: (feature bias - res); yourself ]
-]
-
-{ #category : #initialization }
-CNeuronLayer >> adjustDeltaWithNextLayer [
-	"The next layer is not a fully connected layer."
-	
-	| maxIndexesCuboid nextLayerDeltas |
-	nextLayerDeltas := self nextLayer deltas.
-	maxIndexesCuboid := self nextLayer units collect: [ :row | row collect: #indexesArray ].
-	neurons do: [ :row | row collect: [ :col | col collect: [ :neuron | neuron adjustDeltaWith: 0 ]]].
-	
-	maxIndexesCuboid doWithIndex: [ :row :i |
-		row doWithIndex: [ :col :j |
-			col doWithIndex: [ :maxCoordinates :k |
-				| rowIndex columnIndex |
-				rowIndex := (stride * (i - 1) + (maxCoordinates first)).
-				columnIndex := (stride * (j - 1) + (maxCoordinates second)).
-				(((neurons at: rowIndex) at: columnIndex) at: k) adjustDeltaWith: (((nextLayerDeltas at: i) at: j) at: k) ]]].
-]
-
-{ #category : #initialization }
-CNeuronLayer >> adjustDeltaWithoutNextLayer [
-	"The next layer is a fully connected layer."
-	
-	| nextLayerDeltas |
-	nextLayerDeltas := self nextLayer deltas.
-	neurons doWithIndex: [ :row :n |
-		row doWithIndex: [ :col :p |
-			col doWithIndex: [ :neuronL :m |
-				neuronL adjustDeltaWith: (nextLayerDeltas at: m) ]]]
+		feature bias: (feature bias - res).
+		feature ]
 ]
 
 { #category : #'as yet unclassified' }
@@ -104,17 +75,49 @@ CNeuronLayer >> adjustWeightsWithInputs: inputs [
 							res := (((inputs at: (stride * (m - 1) + k)) at: (stride * (n - 1) + l)) at: j) * 
 										((((neurons at: m) at: n) at: i) delta) ]].
 					weight - res ]]].
-		feature characteristics: cuboid; yourself ]
+		feature characteristics: cuboid.
+		feature ]
 ]
 
 { #category : #initialization }
 CNeuronLayer >> backwardPropagateError [
 	"To adjust weights of features in many cases."
 	
-	self nextLayer isFullyConnected ifTrue: [ self adjustDeltaWithoutNextLayer ]
-												ifFalse: [ self adjustDeltaWithNextLayer ].
+	self nextLayer isFullyConnected ifTrue: [ self computeDeltaWithoutNextLayer ]
+												ifFalse: [ self computeDeltaWithNextLayer ].
 
 	self previousLayer notNil ifTrue: [ self previousLayer backwardPropagateError ].
+]
+
+{ #category : #initialization }
+CNeuronLayer >> computeDeltaWithNextLayer [
+	"The next layer is not a fully connected layer."
+	
+	| maxIndexesCuboid nextLayerDeltas previousPoolingStride |
+	previousPoolingStride := self nextLayer stride.
+	nextLayerDeltas := self nextLayer deltas.
+	maxIndexesCuboid := self nextLayer units collect: [ :row | row collect: #indexesArray ].
+	neurons do: [ :row | row collect: [ :col | col collect: [ :neuron | neuron adjustDeltaWith: 0 ]]].
+	
+	maxIndexesCuboid doWithIndex: [ :row :i |
+		row doWithIndex: [ :col :j |
+			col doWithIndex: [ :maxCoordinates :k |
+				| rowIndex columnIndex |
+				rowIndex := (previousPoolingStride * (i - 1) + (maxCoordinates first)).
+				columnIndex := (previousPoolingStride * (j - 1) + (maxCoordinates second)).
+				(((neurons at: rowIndex) at: columnIndex) at: k) adjustDeltaWith: (((nextLayerDeltas at: i) at: j) at: k) ]]].
+]
+
+{ #category : #initialization }
+CNeuronLayer >> computeDeltaWithoutNextLayer [
+	"The next layer is a fully connected layer."
+	
+	| nextLayerDeltas |
+	nextLayerDeltas := self nextLayer deltas.
+	neurons doWithIndex: [ :row :n |
+		row doWithIndex: [ :col :p |
+			col doWithIndex: [ :neuronL :m |
+				neuronL adjustDeltaWith: (nextLayerDeltas at: m) ]]]
 ]
 
 { #category : #'as yet unclassified' }

@@ -25,7 +25,7 @@ Class {
 }
 
 { #category : #tests }
-PoolingLayerTest >> testBasic [
+PoolingLayerTest >> testFeed [
 	"To test if a PoolingLayer on a single depth slice works well."
 
 	| cuboid pl output |

@@ -68,13 +68,14 @@ NeuronLayer >> backwardPropagateError: expected [
 NeuronLayer >> deltas [
 	"To get deltas."
 
-	| depth sumDelta |
+	| depth sumDelta result |
 	depth := neurons anyOne weights size.
-	^ (1 to: depth) collect: [ :j |
+	result := (1 to: depth) collect: [ :j |
 		sumDelta := 0.0.
 		neurons do: [ :neuron |
 			sumDelta := (neuron weights at: j) * (neuron delta) + sumDelta ].
-		sumDelta ]
+		sumDelta ].
+	^ result
 ]
 
 { #category : #initialization }

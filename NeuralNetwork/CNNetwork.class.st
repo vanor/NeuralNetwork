@@ -62,6 +62,13 @@ CNNetwork >> initialize [
 	precisions := OrderedCollection new.
 ]
 
+{ #category : #accessing }
+CNNetwork >> layers [
+	"To get all the layers of the network."
+
+	^ layers
+]
+
 { #category : #initialization }
 CNNetwork >> learningRate: aLearningRate [
 	"To set the learning rate of the whole networkk with a specific value."
