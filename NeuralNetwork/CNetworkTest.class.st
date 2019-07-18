@@ -195,4 +195,6 @@ CNetworkTest >> testSecondLayerComputationOfDelta [
 	self assert: (result size) equals: 2.
 	self assert: (result anyOne size) equals: 2.
 	self assert: (result anyOne anyOne size) equals: 2.
+	
+	self assert: (result first first first) equals: 1. "d1,1,1 * w1,1,1,1 + d2,1,1 * w2,1,1,1 + d3,1,1 * w3,1,1,1"
 ]
