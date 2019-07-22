@@ -37,7 +37,8 @@ Class {
 		'stride',
 		'zeroPaddingSize',
 		'previousLayer',
-		'nextLayer'
+		'nextLayer',
+		'learningRate'
 	],
 	#category : #NeuralNetwork
 }
@@ -54,7 +55,7 @@ CNeuronLayer >> adjustBias [
 		1 to: width do: [ :m |
 			1 to: height do: [ :n |
 				res := (((neurons at: m) at: n) at: i) delta + res ]].
-		feature bias: (feature bias - res).
+		feature bias: (feature bias + (learningRate * res)).
 		feature ]
 ]
 
@@ -74,7 +75,7 @@ CNeuronLayer >> adjustWeightsWithInputs: inputs [
 						1 to: height do: [ :n |
 							res := (((inputs at: (stride * (m - 1) + k)) at: (stride * (n - 1) + l)) at: j) * 
 										((((neurons at: m) at: n) at: i) delta) ]].
-					weight - res ]]].
+					weight + (learningRate * res) ]]].
 		feature characteristics: cuboid.
 		feature ]
 ]
@@ -224,6 +225,7 @@ CNeuronLayer >> initialize [
 
 	super initialize.
 	stride := 1.
+	learningRate := 0.1.
 ]
 
 { #category : #'as yet unclassified' }
@@ -240,6 +242,20 @@ CNeuronLayer >> isFullyConnected [
 	"To know if the layer is a fully connected layer."
 
 	^ false
+]
+
+{ #category : #accessing }
+CNeuronLayer >> learningRate [
+	"To get learningRate attribute."
+
+	^ learningRate
+]
+
+{ #category : #accessing }
+CNeuronLayer >> learningRate: aLearningRate [
+	"To set learningRate attribute."
+
+	learningRate := aLearningRate
 ]
 
 { #category : #accessing }

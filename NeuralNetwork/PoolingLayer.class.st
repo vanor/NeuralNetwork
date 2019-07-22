@@ -54,29 +54,36 @@ PoolingLayer >> backwardPropagateError [
 PoolingLayer >> computeDeltaWithNextLayer [
 	"The next layer is not a fully connected layer."
 	
-	| width height depth nextLayerDeltas nextLayerFeatures deltaWidth deltaHeight featuresWidth featuresHeight res cond |
+	| nextLayerDeltas nextLayerFeaturesWidth nextLayerFeaturesHeight width height depth result nStride pStride pFeatWidth pFeatHeight  |
+	nextLayerDeltas := self nextLayer deltas.
+	nextLayerFeaturesWidth := self nextLayer features anyOne characteristics size.
+	nextLayerFeaturesHeight := self nextLayer features anyOne characteristics anyOne size.
 	width := units size.
 	height := units anyOne size.
 	depth := units anyOne anyOne outputArray size.
-	nextLayerDeltas := self nextLayer deltas.
-	nextLayerFeatures := self nextLayer features.
-	deltaWidth := nextLayerDeltas size.
-	deltaHeight := nextLayerDeltas anyOne size.
-	featuresWidth := nextLayerFeatures anyOne characteristics size.
-	featuresHeight := nextLayerFeatures anyOne characteristics anyOne size.
-	deltaCuboid := (1 to: width) collect: [ :n | (1 to: height) collect: [ :p |
-							(1 to: depth) collect: [ :m |
-								res := 0.0.
-								1 to: deltaWidth do: [ :j |
-									1 to: featuresWidth do: [ :b |
-										1 to: deltaHeight do: [ :k |
-											1 to: featuresHeight do: [ :c |
-												nextLayerFeatures doWithIndex: [ :feat :i |
-													cond := (stride * (j - 1) + b = n) and: (stride * (k - 1) + c = p).
-													cond ifTrue: [
-														res := res + ((((nextLayerDeltas at: j) at: k) at: i)
-																	* (((feat characteristics at: b) at: c) at: m)) ] ]]]]].
-								res ]]].
+	nStride := self nextLayer stride.
+	pStride := self previousLayer stride.
+	pFeatWidth := self previousLayer features anyOne characteristics size.
+	pFeatHeight := self previousLayer features anyOne characteristics anyOne size.
+	
+	deltaCuboid := (1 to: width) collect: [ :n |
+							(1 to: height) collect: [ :p |
+								(1 to: depth) collect: [ :m |
+									result := 0.0.
+									nextLayerDeltas doWithIndex: [ :nextLayerRow :j |
+										1 to: nextLayerFeaturesWidth do: [ :b |
+											nextLayerRow doWithIndex: [ :nextLayerColumn :k |
+												1 to: nextLayerFeaturesHeight do: [ :c |
+													nextLayerColumn doWithIndex: [ :delta :i |
+														| cond1 cond2 cond3 |
+														cond1 := (nStride * (j - 1) + b = n) and: (nStride * (k - 1) + c = p).
+														cond2 := ((n - pFeatWidth) / pStride + 1 <= j) and: ((n - 1) / pStride + 1 >= j).
+														cond3 := ((p - pFeatHeight) / pStride + 1 <= k) and: ((p - 1) / pStride + 1 >= k).
+														(cond1 and: (cond2 and: cond3)) ifTrue: [ 
+															result := result +
+																(delta * ((((self nextLayer features) at: i) characteristics at: b) at: c) at: m). ]
+														]]]]].
+									result ] ] ]
 ]
 
 { #category : #initialization }

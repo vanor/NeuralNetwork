@@ -167,6 +167,41 @@ CNetworkTest >> testFeed [
 ]
 
 { #category : #tests }
+CNetworkTest >> testFirstLayerComputationOfDelta [
+	"To test if the first layer well evaluate neurons delta."
+
+	| net cube result |
+	net := self constructNetwork.
+	cube := self constructCuboid.
+	net train: { cube } withLabels: { 2 } andNbEpoch: 1.
+	result := net layers first neurons collect: [ :row | row collect: [ :col | col collect: #delta ] ].
+	
+	self assert: (result size) equals: 4. "delta next layer == d and output this layer == s. Zero-padding was used."
+	self assert: (result anyOne size) equals: 4.
+	self assert: (result anyOne anyOne size) equals: 2.
+	
+	self assert: (result first first) equals: #(0 0). "max is at (2,1,1) and (2,2,2)"
+	self assert: (result first second) equals: #(0 0). "max is at (2,1,1) and (2,2,2)"
+	self assert: (result second first) equals: #(-0.0003744662719553271 0). "max is at (2,1,1) and (2,2,2)"
+	self assert: (result second second) equals: #(0 -0.0011201569882972966). "max is at (2,1,1) and (2,2,2)"
+	
+	self assert: (result first third) equals: #(0 0). "max is at (2,3,1) and (2,3,2)"
+	self assert: (result first fourth) equals: #(0 0). "max is at (2,3,1) and (2,3,2)"
+	self assert: (result second third) equals: #(-0.0016805399569485634 -0.0007451570223616926). "max is at (2,3,1) and (2,3,2)"
+	self assert: (result second fourth) equals: #(0 0). "max is at (2,3,1) and (2,3,2)"
+	
+	self assert: (result third first) equals: #(0 0). "max is at (3,2,1) and (3,2,2)"
+	self assert: (result third second) equals: #(0.0 -0.0009349020863701471). "max is at (3,2,1) and (3,2,2)"
+	self assert: (result fourth first) equals: #(0 0). "max is at (3,2,1) and (3,2,2)"
+	self assert: (result fourth second) equals: #(0 0). "max is at (3,2,1) and (3,2,2)"
+	
+	self assert: (result third third) equals: #(-0.0013060602949145988 -0.0005576388874990577). "max is at (3,3,1) and (3,3,2)"
+	self assert: (result third fourth) equals: #(0 0). "max is at (3,3,1) and (3,3,2)"
+	self assert: (result fourth third) equals: #(0 0). "max is at (3,3,1) and (3,3,2)"
+	self assert: (result fourth fourth) equals: #(0 0). "max is at (3,3,1) and (3,3,2)"
+]
+
+{ #category : #tests }
 CNetworkTest >> testLastLayerComputationOfDelta [
 	"To test if the last layer well evaluate neurons delta."
 
@@ -196,5 +231,12 @@ CNetworkTest >> testSecondLayerComputationOfDelta [
 	self assert: (result anyOne size) equals: 2.
 	self assert: (result anyOne anyOne size) equals: 2.
 	
-	self assert: (result first first first) equals: 1. "d1,1,1 * w1,1,1,1 + d2,1,1 * w2,1,1,1 + d3,1,1 * w3,1,1,1"
+	self assert: (result first first first) equals: -0.0001872501367200737. "d1,1,1 * w1,1,1,1 + d2,1,1 * w2,1,1,1 + d3,1,1 * w3,1,1,1"
+	self assert: (result first first second) equals: -0.0005600786202057108. "d1,1,1 * w1,2,1,1 + d2,1,1 * w2,2,1,1 + d3,1,1 * w3,2,1,1"
+	self assert: (result first second first) equals: -0.0008402803040686449. "d1,1,1 * w1,1,1,2 + d2,1,1 * w2,1,1,2 + d3,1,1 * w3,1,1,2"
+	self assert: (result first second second) equals: -0.00037282848348563707. "d1,1,1 * w1,2,1,2 + d2,1,1 * w2,2,1,2 + d3,1,1 * w3,2,1,2"
+	self assert: (result second first first) equals: 0.0. "d1,1,1 * w1,1,2,1 + d2,1,1 * w2,1,2,1 + d3,1,1 * w3,1,2,1"
+	self assert: (result second second first) equals: -0.0006530301673485712. "d1,1,1 * w1,1,2,2 + d2,1,1 * w2,1,2,2 + d3,1,1 * w3,1,2,2"
+	self assert: (result second first second) equals: -0.00046745182058300787. "d1,1,1 * w1,2,2,1 + d2,1,1 * w2,2,2,1 + d3,1,1 * w3,2,2,1"
+	self assert: (result second second second) equals: -0.00028020168386293416. "d1,1,1 * w1,2,2,2 + d2,1,1 * w2,2,2,2 + d3,1,1 * w3,2,2,2"
 ]
